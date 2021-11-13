@@ -50,7 +50,6 @@ Rscript pred_pac.R 4 2000 1 1 5
 Rscript pred_pac_est.R 4 2000 1 1 5 
 ```
 
-It stores the summary of experiment (coverage, estimation error and configurations) in `results/simulation/` folder, with file name showing all information of configurations.
 
 ##### Sensitivity analysis (Sec 6.2)
 
@@ -80,7 +79,6 @@ Rscript sens_pac.R 3 4 2 5
 Rscript sens_pac_est.R 3 4 2 5
 ```
 
-It stores the summary of this single run similarly in `results/simulation/` folder with all information of configurations.
 
 ### Batch submission 
 
