@@ -2,6 +2,10 @@
 
 This repository contains the code to reproduce the numerical results in our paper - Sensitivity Analysis of Individual Treatment Effects: A Robust Conformal Inference Approach.
 
+The following R packages are required to be installed: [grf](https://grf-labs.github.io/grf/), [tidyverse](https://www.tidyverse.org/).
+
+
+
 
 
 ## Folders
