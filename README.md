@@ -24,7 +24,7 @@ Each file in `simulations/` folder implements one run of the simulation.
 
 ### Single run
 
-##### Counterfactual prediction (Sec 6.1)
+#### Counterfactual prediction (Sec 6.1)
 
 Files starting with `pred_` are for counterfactual prediction in Section 6.1. Each of them take the inputs `--p` for the dimension, `--n` for the sample size, `--alpha_id` for the coverage target, `--gamma_id` for the confounding level and `--seed` for the random seed. 
 
@@ -51,7 +51,7 @@ Rscript pred_pac_est.R 4 2000 1 1 5
 ```
 
 
-##### Sensitivity analysis (Sec 6.2)
+#### Sensitivity analysis (Sec 6.2)
 
 Files starting with `sens_` are for sensitivity analysis in Section 6.2.  Each of them take the inputs `--gamma_id` for the confounding level, `--diff_id` for the effect size, `ite` indicating random or fixed ITE, and `--seed` for the random seed. 
 
@@ -98,7 +98,7 @@ Each file in `realdata/` folder implements one run of the real data analysis.
 
 ### Single run
 
-##### Counterfactual prediction (Sec 7.1)
+#### Counterfactual prediction (Sec 7.1)
 
 Files starting with `syn_` are for counterfactual prediction of semi-real data in Section 7.1. We implement the two procedures with estimated bounds. 
 
@@ -129,7 +129,7 @@ Rscript syn_pred_pac.R 2 2 3
 
 It stores the summary of results (coverage, average length of predictive interval, etc) in `results/realdata/` folder, with file name `syn_pred_pac_` followed by all relevant configurations. 
 
-##### Sensitivity analysis
+#### Sensitivity analysis
 
 Files starting with `sens_` are for sensitivity analysis on real data in Section 7.2. Each of them takes inputs `pos` indicating whether we test for positive ITE (`pos=1`, null hypothesis: ITE <= 0 and Gamma* <= Gamma) or negative ITE (`pos=2`), `alpha_id` for target coverage and `seed` for random seed (for sample splitting). 
 
