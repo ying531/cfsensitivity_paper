@@ -1,5 +1,7 @@
-library(grf)
-
+#!/usr/bin/env Rscript
+########################################
+## input configurations
+########################################
 args <- commandArgs(trailingOnly = TRUE)
 p <- as.integer(args[1])
 n <- as.integer(args[2])
@@ -14,12 +16,33 @@ alpha = alphas[alpha_ind]
 # confounding level Gamma
 Gamma = gammas[Gamma_ind] 
 
-# load util functions
+########################################
+## load libraries
+########################################
+suppressPackageStartupMessages(library(grf))
+options(warn=-1)
+
+########################################
+## load util functions
+########################################
 source("../utils/util_ate.R")
 cat(paste(" - Running the script with marginally-valid algorithm and estimated bounds, alpha ", alpha, ", Gamma ",Gamma,
           ", n ", n, ", p ", p, ", seed ", seed, "\n"), sep = '')
 
-# marginal, unknown e(x)
+########################################
+## Output direcroty
+########################################
+if(!dir.exists("../results")){
+  dir.create("../results")
+}
+out_dir <- "../results/simulation/"
+if(!dir.exists(out_dir)){
+  dir.create(out_dir)
+}
+
+########################################
+## Parameter
+########################################
 alpha0 = 0
 n_test = 500
 beta = matrix(c(-0.531,0.126,-0.312,0.018,rep(0,p-4)), nrow=p)
@@ -28,18 +51,22 @@ pp = mean(data.gen.ate(n*1000,p,Gamma,beta,alpha0,obs=FALSE)$T)
 
 
 set.seed(seed)
+########################################
+## fit on the training fold
+########################################
 train.data = data.gen.ate(n,p,Gamma,beta,alpha0,obs=TRUE)
 train.X = (train.data$X[train.data$T==1,])[1:n,]
 train.Y = (train.data$Y1[train.data$T==1])[1:n]
 # train the nonconformity score function
 train.score = conform.score(train.X, train.Y, "cqr", trained_model=NULL, quantile=1-alpha)
 t.mdl = train.score$model
-
 # estimate hat{e}(x)
 hat.p = mean(train.data$T)
 e.model = regression_forest(train.data$X, train.data$T, num.threads = 1)
 
-# generate calibration fold
+########################################
+## calibration 
+########################################
 calib.data = data.gen.ate(n,p,Gamma,beta,alpha0,obs=TRUE)
 calib.X = (calib.data$X[calib.data$T==1,])[1:n,]
 calib.Y = (calib.data$Y1[calib.data$T==1])[1:n]
@@ -60,12 +87,14 @@ rownames(calib.all) = 1:dim(calib.all)[1]
 calib.true.exu = calib.data$exu
 calib.true.ex = calib.data$ex
 calib.true.wx = pp / calib.true.exu
-gap = (mean(pmax(calib.lx - calib.true.wx, 0)) + mean(pmax(calib.true.wx - calib.ux, 0)) + 1/nrow(X) * mean( calib.true.wx * max(pmax(calib.true.wx - calib.ux, 0))) ) * max(1/calib.lx)
+gap = (mean(pmax(calib.lx - calib.true.wx, 0)) + mean(pmax(calib.true.wx - calib.ux, 0)) + 1/nrow(calib.X) * mean( calib.true.wx * max(pmax(calib.true.wx - calib.ux, 0))) ) * max(1/calib.lx)
 l_err = mean(abs(calib.lx - pp * (1 + (1-calib.true.ex)/(calib.true.ex*Gamma))))
 u_err = mean(abs(calib.ux - pp * (1 + Gamma * (1-calib.true.ex)/calib.true.ex)))
 l_inv = mean(1/calib.lx)
 
-# generate test fold 
+########################################
+## generate test fold
+########################################
 test.data = data.gen.ate(n_test,p,Gamma,beta,alpha0,obs=FALSE)
 test.X = test.data$X
 test.Y1 = test.data$Y1
@@ -74,9 +103,9 @@ test.lx = hat.p*(1+ (1-test.ex)/(test.ex*Gamma))
 test.ux = hat.p*(1+ Gamma* (1-test.ex)/(test.ex))
 test.pred = predict(t.mdl, test.X, quantile=c(alpha/2, 1-alpha/2)) 
 
-###################################
-# the confounding-aware algorithm #
-###################################
+########################################
+## the confounding-aware algorithm  
+########################################
 
 cat(" - Computing the robust weighted conformal inference...")
   
@@ -106,9 +135,9 @@ c.cover = (c.test.lo <= test.Y1) * (c.test.hi >= test.Y1)
 cat("Done.\n")
 
 
-#####################################
-# the confounding-unaware algorithm #
-#####################################
+########################################
+## the confounding-unaware algorithm  
+########################################
 
 cat(" - Computing the vanilla weighted conformal inference...")
 
@@ -132,18 +161,15 @@ for (ii in 1:n_test){
 nc.cover = (nc.test.lo <= test.Y1) * (nc.test.hi >= test.Y1)
 
 cat("Done.\n")
-  
+
+########################################
+# output summary of test   
+########################################
 res = data.frame("c.cov" = mean(c.cover), "c.len" = mean(c.test.hi-c.test.lo),
                  "nc.cov" = mean(nc.cover), "nc.len" = mean(nc.test.hi-nc.test.lo), 
                  "gap" = gap, "l_err" = l_err, "u_err" = u_err, "l_inv" = l_inv,
                  "n" = n, "p" = p, "n_calib" = n_calib,
                  "gamma" = Gamma, "alpha" = alpha, "seed" = seed, "method" = "marginal_est")
 
-save.path = paste("./results/pred_marginal_est_p_",p,"_n_",n,"_alpha_",alpha_ind,"_gamma_",Gamma,"_seed_",seed,".csv",sep='')
+save.path = paste(out_dir, "pred_marginal_est_p_",p,"_n_",n,"_alpha_",alpha_ind,"_gamma_",Gamma,"_seed_",seed,".csv",sep='')
 write.csv(res, save.path)
-
-
-
-
-
-

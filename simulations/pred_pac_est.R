@@ -1,5 +1,7 @@
-library(grf)
-
+#!/usr/bin/env Rscript
+########################################
+## input configurations
+########################################
 args <- commandArgs(trailingOnly = TRUE)
 p <- as.integer(args[1])
 n <- as.integer(args[2])
@@ -14,12 +16,33 @@ alpha = alphas[alpha_ind]
 # confounding level Gamma
 Gamma = gammas[Gamma_ind] 
 
-# load util functions
+########################################
+## load libraries
+########################################
+suppressPackageStartupMessages(library(grf))
+options(warn=-1)
+
+########################################
+## load util functions
+########################################
 source("../utils/util_ate.R")
 cat(paste(" - Running the script with PAC-type algorithm and ground truth, alpha ", alpha, ", Gamma ",Gamma,
           ", n ", n, ", p ", p, ", seed ", seed, "\n"), sep = '')
 
-# PAC, estimated e(x)
+########################################
+## Output direcroty
+########################################
+if(!dir.exists("../results")){
+  dir.create("../results")
+}
+out_dir <- "../results/simulation/"
+if(!dir.exists(out_dir)){
+  dir.create(out_dir)
+}
+
+########################################
+## Parameter
+########################################
 alpha0 = 0
 delta = 0.05
 n_test = 10000
@@ -29,6 +52,9 @@ pp = mean(data.gen.ate(n*1000,p,Gamma,beta,alpha0,obs=FALSE)$T)
 
 
 set.seed(seed)
+########################################
+## fit on the training fold
+########################################
 train.data = data.gen.ate(n,p,Gamma,beta,alpha0,obs=TRUE)
 train.X = (train.data$X[train.data$T==1,])[1:n,]
 train.Y = (train.data$Y1[train.data$T==1])[1:n]
@@ -41,7 +67,9 @@ e.model = regression_forest(train.data$X, train.data$T, num.threads = 1)
 train.ex = predict(e.model)$predictions
 M = max(hat.p * (1 + Gamma * (1-train.ex)/(train.ex)))
   
-# generate calibration fold
+########################################
+## calibration 
+########################################
 calib.data = data.gen.ate(n,p,Gamma,beta,alpha0,obs=TRUE)
 calib.X = (calib.data$X[calib.data$T==1,])[1:n,]
 calib.Y = (calib.data$Y1[calib.data$T==1])[1:n]
@@ -51,6 +79,7 @@ n_calib = length(calib.Y)
 # lower and upper bounds of weight function
 calib.lx = hat.p * (1 + (1-calib.ex) / (calib.ex*Gamma))
 calib.ux = hat.p * (1 + Gamma * (1-calib.ex) / (calib.ex))
+calib.nc.w = hat.p / calib.ex
 
 # non-conformity score on calibration data
 calib.score = conform.score(calib.X, calib.Y, "cqr", trained_model=t.mdl, quantile=1-alpha)$score
@@ -66,7 +95,9 @@ gap = max( mean(pmax(0, calib.lx- calib.wx.true )), mean(pmax(calib.wx.true - ca
 l.err = mean(abs(calib.lx - pp * (1 + (1-calib.ex.true)/(calib.ex.true*Gamma))))
 u.err = mean(abs(calib.ux - pp * (1 + Gamma*(1-calib.ex.true)/(calib.ex.true))))
 
-# generate test fold 
+########################################
+## generate test fold
+########################################
 test.data = data.gen.ate(n_test,p,Gamma,beta,alpha0,obs=FALSE)
 test.X = test.data$X
 test.Y1 = test.data$Y1
@@ -75,9 +106,9 @@ test.pred = predict(t.mdl, test.X, quantile=c(alpha/2, 1-alpha/2))
 test.T = test.data$T
 
 
-###################################
+########################################
 # the PAC-type algorithm  
-###################################
+########################################
 
 cat(" - Computing the PAC-type algorithm...")
 
@@ -92,10 +123,14 @@ c.test.lo = test.pred[,1] - v.kstar
 c.test.hi = test.pred[,2] + v.kstar
 c.cover = (c.test.lo <= test.Y1) * (c.test.hi >= test.Y1)
 
+########################################
+# output summary of test   
+########################################
+
 res = data.frame("c.cov" = mean(c.cover), "c.len" = mean(c.test.hi-c.test.lo),
                  "gap" = gap, "l.err" = l.err, "u.err" = u.err,
                  "n"=n, "p"=p, "n_calib" = n_calib, 
                  "gamma" = Gamma, "alpha" = alpha, "seed" = seed, "method" = "PAC_estimated") 
 
-save.path = paste("./results/pred_pac_est_p_",p,"_n_",n,"_alpha_",alpha_ind,"_gamma_",Gamma_ind,"_seed_",seed,".csv",sep='')
+save.path = paste(out_dir,"pred_pac_est_p_",p,"_n_",n,"_alpha_",alpha_ind,"_gamma_",Gamma_ind,"_seed_",seed,".csv",sep='')
 write.csv(res, save.path)

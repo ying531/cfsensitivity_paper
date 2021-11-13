@@ -1,10 +1,12 @@
-library(grf)
-
+#!/usr/bin/env Rscript
+########################################
+## input configurations
+########################################
 args <- commandArgs(trailingOnly = TRUE)
 Gamma_ind <- as.integer(args[1]) # 1:6
 diff_ind <- as.integer(args[2]) # 1:4
 diff_cf <- as.integer(args[3]) # 1:random 2:fixed
-seed <- as.integer(args[4]) # 1:2
+seed <- as.integer(args[4])  
 
 alpha = 0.1 # coverage target 1-alpha
 gammas = seq(1,2, by=0.2) 
@@ -14,11 +16,15 @@ diff.ite = diffs[diff_ind] # effect size
 diff.cf = c(TRUE, FALSE)
 dcf = diff.cf[diff_cf] # whether random ITE
 
-n = 2000 # fixed sample size
-p = 4 # fixed covariate dimension
-beta = matrix(c(-0.531,0.126,-0.312,0.018), nrow=p)
+########################################
+## load libraries
+########################################
+suppressPackageStartupMessages(library(grf))
+options(warn=-1)
 
-# load util functions
+########################################
+## load util functions
+########################################
 source("../utils/util_att.R")
 if (dcf){
   cat(paste(" - Running the script with marginally-valid algorithm and ground truth, Gamma", Gamma, 
@@ -28,12 +34,32 @@ if (dcf){
             ", effect size", diff.ite, ", fixed ITE, seed", seed, "\n"), sep = '')
 }
 
+########################################
+## Output direcroty
+########################################
+if(!dir.exists("../results")){
+  dir.create("../results")
+}
+out_dir <- "../results/simulation/"
+if(!dir.exists(out_dir)){
+  dir.create(out_dir)
+}
+
+########################################
+## Parameter
+########################################
+n = 2000 # fixed sample size
+p = 4 # fixed covariate dimension
+beta = matrix(c(-0.531,0.126,-0.312,0.018), nrow=p)
 alpha0 = 1
 n_test = 500
 pp = mean(data.gen.att(n*1000, p, Gamma, beta, alpha0, obs=FALSE, a=diff.ite, diff.confound=dcf)$T)
 
 
 set.seed(seed)
+########################################
+## fit on the training fold
+########################################
 train.data = data.gen.att(n, p, Gamma, beta, alpha0, obs=TRUE, a=diff.ite, diff.confound=dcf)
 train.X = (train.data$X[train.data$T==0,])[1:n,]
 train.Y = (train.data$Y0[train.data$T==0])[1:n]
@@ -41,7 +67,9 @@ train.Y = (train.data$Y0[train.data$T==0])[1:n]
 train.score = conform.score(train.X, train.Y, "one-side-cqr", trained_model=NULL, quantile=1-alpha)
 t.mdl = train.score$model
 
-# generate calibration fold
+########################################
+## calibration 
+########################################
 calib.data = data.gen.att(n,p,Gamma,beta,alpha0,obs=TRUE, a=diff.ite, diff.confound=dcf)
 calib.X = (calib.data$X[calib.data$T==0,])[1:n,]
 calib.Y = (calib.data$Y0[calib.data$T==0])[1:n]
@@ -57,7 +85,9 @@ calib.all = calib.all[order(calib.all$score),]
 calib.score = calib.all$score
 calib.ex = calib.all$ex
   
-# generate test fold
+########################################
+## generate test fold
+########################################
 test.data = data.gen.att(n_test,p,Gamma,beta,alpha0,obs=FALSE, a=diff.ite, diff.confound=dcf)
 test.X = test.data$X
 test.Y0 = test.data$Y0
@@ -69,7 +99,7 @@ test.pred = predict(t.mdl, test.X, quantile=1-alpha)
 true.ite = test.Y1 - test.Y0
   
 ################################################## 
-### counterfactual prediction to check validity ##
+### counterfactual prediction to check validity  
 ################################################## 
 
 cat(" - Computing the counterfactual prediction...")
@@ -120,7 +150,7 @@ nc.cover = test.Y0 <= nc.test
 cat("Done.\n")
   
 ############################################# 
-### sensitivity analysis invert prediction ##
+### sensitivity analysis invert prediction  
 ############################################# 
   
 cat(" - Running the sensitivity analysis...")
@@ -132,10 +162,13 @@ for (ii in 1:n_test){
 
 cat("Done.\n")
 
+########################################
+# output summary of test   
+########################################
+
 res = data.frame("c.cov" = mean(c.cover[test.T==1]), "nc.cov" = mean(nc.cover[test.T==1]), 
                  "gamma"=Gamma, "ite" = diff.ite, "seed"=seed, "method" = "marginal")
 
-write.csv(hat.gamma, paste("./results/sens_mgn_gvalue_diff_",diff_ind,"_set_",diff_cf,"_gamma_",Gamma_ind,"_seed_",seed,".csv",sep=''))
-write.csv(true.ite, paste("./results/sens_mgn_gvalue_diff_",diff_ind,"_set_",diff_cf,"_gamma_",Gamma_ind,"_seed_",seed,".csv",sep=''))
-
-write.csv(res, paste(".results/sens_mgn_res_diff_",diff_ind,"_set_",diff_cf,"_gamma_",Gamma_ind,"_seed_",seed,".csv",sep=''))
+write.csv(hat.gamma, paste(out_dir, "sens_mgn_gvalue_diff_",diff_ind,"_set_",diff_cf,"_gamma_",Gamma_ind,"_seed_",seed,".csv",sep=''))
+write.csv(true.ite, paste(out_dir, "sens_mgn_ITE_diff_",diff_ind,"_set_",diff_cf,"_gamma_",Gamma_ind,"_seed_",seed,".csv",sep=''))
+write.csv(res, paste(out_dir, "sens_mgn_res_diff_",diff_ind,"_set_",diff_cf,"_gamma_",Gamma_ind,"_seed_",seed,".csv",sep=''))

@@ -91,8 +91,15 @@ conform.score <- function(X,Y, method='cqr', trained_model = NULL, quantile=0.9)
 
 wsr.cdf.single <- function(delta, lx, ux, M, i, rand_given, rand_ind){
   n = length(lx)
-  lxx = c(lx[1:i], rep(0,n-i))/M
-  uxx = 1 + (c(rep(0,i),-ux[(i+1):n]))/M
+  if (i == n){
+    lxx = lx/M
+    uxx = rep(1, n)
+  }else{
+    lxx = c(lx[1:i], rep(0,n-i))/M
+    uxx = 1 + (c(rep(0,i),-ux[(i+1):n]))/M
+  }
+  l.mean = mean(lxx) * M
+  u.mean = mean(uxx) * M + 1 - M
   if (rand_given){
     wsr1 = wsr_lower(delta/2, lxx[rand_ind])*M
     wsr2 = wsr_lower(delta/2, uxx[rand_ind])*M +1-M
@@ -100,7 +107,7 @@ wsr.cdf.single <- function(delta, lx, ux, M, i, rand_given, rand_ind){
     wsr1 = wsr_lower(delta/2, sample(lxx))*M
     wsr2 = wsr_lower(delta/2, sample(uxx))*M +1-M
   }
-  return( max(wsr1,wsr2))
+  return( min( max(wsr1,wsr2), max(l.mean, u.mean)))
 }
 
 #################################### 
@@ -119,11 +126,11 @@ wsr.cdf <- function(delta, lx, ux, M, rand_given, rand_ind){
 # for one single Gamma  
 ####################################
 
-ate.single.pac <- function(Gamma, pp, calib.ex, calib.score, delta, alpha, rand_ind){
-  # lower and upper bounds for likelihood ratio
-  calib.lx = pp*(1+ (1-calib.ex)/(calib.ex*Gamma))
-  calib.ux = pp*(1+ Gamma* (1-calib.ex)/(calib.ex))
-  # aggregate information
+att.single.pac <- function(Gamma, pp, calib.ex, calib.score, delta, alpha, rand_ind){
+  # lower and upper bounds
+  calib.lx = (1-pp)*calib.ex/(Gamma*pp*(1-calib.ex))
+  calib.ux = (1-pp)*calib.ex*Gamma/(pp*(1-calib.ex))
+  # aggregate
   calib.all = data.frame("score"=calib.score, "lx"=calib.lx, "ux"=calib.ux, "ex" = calib.ex)
   # compute the 1-alpha quantile
   M = max(calib.ux)
@@ -143,6 +150,7 @@ wsr.qtl <- function(delta, calib.all, M, alpha, rand_ind){
   m.i = floor((l.i+r.i)/2)
   left.cdf = wsr.cdf.single(delta, calib.all$lx, calib.all$ux, M, l.i, rand_given=TRUE, rand_ind)
   right.cdf = wsr.cdf.single(delta, calib.all$lx, calib.all$ux, M, r.i, rand_given=TRUE, rand_ind)
+  right.cdf.check = 1 - calib.all$ux[n_calib]/n_calib
   if (right.cdf < 1-alpha){
     return(Inf)
   }
@@ -338,11 +346,15 @@ wsr_lower <- function(delta, x){
   nu <- pmin(1, sqrt(2 * log(1 / delta) / (n * sig_hat^2)))
   nu[2: length(nu)] = nu[1:(length(nu)-1)]
   nu[1] = pmin(1, sqrt(2 * log(1 / delta) / (n /4)))
-  u_list <- (1 : 1000) / 1000 
+  # u_list <- (1 : 1000) / 1000 
+  u_list <- (0 : 1000) / 1000 
   k_all <- sapply(u_list, FUN = compute_k_lower, x = x, nu = nu)
   u_ind <- min(which(k_all <= 1 / delta))
   if (u_ind == Inf){
-    u_ind = 1000
+    u_ind = 1001
+  }
+  if (u_ind == 2){
+    u_ind = 1 # if positive values in u_list satisfies, then set to zero. 
   }
   bnd <- u_list[u_ind]
   return(bnd)

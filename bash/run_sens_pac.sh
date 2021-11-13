@@ -1,7 +1,7 @@
 #!/bin/bash
 for gamma_id in {1..6}
 	do
-    for diff_id in {1.5}
+    for diff_id in {1..5}
 	do
 	for ite in {1..2}
 	    do

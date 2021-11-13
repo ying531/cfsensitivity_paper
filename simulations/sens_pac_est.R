@@ -1,5 +1,7 @@
-library(grf)
-
+#!/usr/bin/env Rscript
+########################################
+## input configurations
+########################################
 args <- commandArgs(trailingOnly = TRUE)
 Gamma_ind <- as.integer(args[1]) 
 diff_ind <- as.integer(args[2]) 
@@ -15,11 +17,16 @@ diff.ite = diffs[diff_ind] # effect size
 diff.cf = c(TRUE, FALSE)
 dcf = diff.cf[diff_cf] # whether random ITE
 
-n = 2000 # fixed sample size
-p = 4 # fixed covariate dimension
-beta = matrix(c(-0.531,0.126,-0.312,0.018), nrow=p)
 
-# load util functions
+########################################
+## load libraries
+########################################
+suppressPackageStartupMessages(library(grf))
+options(warn=-1)
+
+########################################
+## load util functions
+########################################
 source("../utils/util_att.R")
 if (dcf){
   cat(paste(" - Running the script with PAC algorithm and ground truth, Gamma", Gamma, 
@@ -29,12 +36,30 @@ if (dcf){
             ", effect size", diff.ite, ", fixed ITE, seed", seed, "\n"), sep = '')
 }
 
+########################################
+## Output direcroty
+########################################
+if(!dir.exists("../results")){
+  dir.create("../results")
+}
+out_dir <- "../results/simulation/"
+if(!dir.exists(out_dir)){
+  dir.create(out_dir)
+}
 
+########################################
+## Parameter
+########################################
+n = 2000 # fixed sample size
+p = 4 # fixed covariate dimension
+beta = matrix(c(-0.531,0.126,-0.312,0.018), nrow=p)
 alpha0 = 1
 n_test = 1000
 
 set.seed(seed)
-# generate training fold
+########################################
+## fit on the training fold
+########################################
 train.data = data.gen.att(n, p, Gamma, beta, alpha0, obs=TRUE, a=diff.ite, diff.confound=dcf)
 train.X = (train.data$X[train.data$T==0,])[1:n,]
 train.Y = (train.data$Y0[train.data$T==0])[1:n]
@@ -45,7 +70,9 @@ t.mdl = train.score$model
 e.model = regression_forest(train.data$X, train.data$T, num.threads = 1)
 pp = mean(train.data$T)
 
-# generate calibration fold
+########################################
+## calibration 
+########################################
 calib.data = data.gen.att(n, p, Gamma, beta, alpha0, obs=TRUE, a=diff.ite, diff.confound=dcf)
 calib.X = (calib.data$X[calib.data$T==0,])[1:n,]
 calib.Y = (calib.data$Y0[calib.data$T==0])[1:n]
@@ -62,7 +89,9 @@ calib.all = data.frame("score"=calib.score, "ex" = calib.ex)
 calib.all = calib.all[order(calib.all$score),]
 rownames(calib.all) = 1:dim(calib.all)[1]
 
-# generate test fold
+########################################
+## generate test fold
+########################################
 test.data = data.gen.att(n_test,p,Gamma,beta,alpha0,obs=FALSE, a=diff.ite, diff.confound=dcf)
 test.X = test.data$X
 test.T = test.data$T
@@ -76,7 +105,7 @@ calib.ex = calib.all$ex
 calib.score = calib.all$score
   
 ################################################## 
-### counterfactual prediction to check validity ##
+### counterfactual prediction to check validity  
 ################################################## 
 
 cat(" - Computing the counterfactual prediction...")
@@ -88,7 +117,7 @@ c.cover = c.test >= test.Y0
 cat("Done.\n")
 
 ############################################# 
-### sensitivity analysis invert prediction ##
+### sensitivity analysis invert prediction  
 ############################################# 
 
 cat(" - Running the sensitivity analysis...")
@@ -98,7 +127,6 @@ dd = att.single.pac(g, pp, calib.ex, calib.score, delta, alpha, rand_ind)
 while (dd < Inf){
   g = g * 2
   dd = att.single.pac(g, pp, calib.ex, calib.score, delta, alpha, rand_ind)
-  print(c(g, dd))
 }
 # grid search of gamma values
 ggs = c(seq(1, g/2, length.out = 200), seq(g/2, g, length.out = 100))
@@ -121,9 +149,12 @@ for (ii in 1:n_test){
 
 cat("Done.\n")
 
+
+########################################
+# output summary of test   
+########################################
 res = data.frame("c.cov" = mean(c.cover[test.T==1]), "set" = diff_cf, "gamma"=Gamma, "ite" = diff.ite, "seed"=seed, "method" = "pac_est") 
 
-write.csv(hat.gamma, paste("./results/sens_pac_est_hgamma_diff_",diff_ind,"_set_",diff_cf,"_gamma_",Gamma_ind,"_seed_",seed,".csv",sep=''))
-write.csv(true.ites, paste("./results/sens_pac_est_ite_diff_",diff_ind,"_set_",diff_cf,"_gamma_",Gamma_ind,"_seed_",seed,".csv",sep=''))
-
-write.csv(res, paste("./results/sens_whp_est_res_diff_",diff_ind,"_set_",diff_cf,"_gamma_",Gamma_ind,"_seed_",seed,".csv",sep=''))
+write.csv(hat.gamma, paste(out_dir, "sens_pac_est_hgamma_diff_",diff_ind,"_set_",diff_cf,"_gamma_",Gamma_ind,"_seed_",seed,".csv",sep=''))
+write.csv(true.ites, paste(out_dir, "sens_pac_est_ite_diff_",diff_ind,"_set_",diff_cf,"_gamma_",Gamma_ind,"_seed_",seed,".csv",sep=''))
+write.csv(res, paste(out_dir, "sens_whp_est_res_diff_",diff_ind,"_set_",diff_cf,"_gamma_",Gamma_ind,"_seed_",seed,".csv",sep=''))

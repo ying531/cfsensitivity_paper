@@ -1,5 +1,7 @@
-library(grf)
-
+#!/usr/bin/env Rscript
+########################################
+## input configurations
+########################################
 args <- commandArgs(trailingOnly = TRUE)
 p <- as.integer(args[1])
 n <- as.integer(args[2])
@@ -14,11 +16,33 @@ alpha = alphas[alpha_ind]
 # confounding level Gamma
 Gamma = gammas[Gamma_ind] 
 
-# load util functions
+########################################
+## load libraries
+########################################
+suppressPackageStartupMessages(library(grf))
+options(warn=-1)
+
+########################################
+## load util functions
+########################################
 source("../utils/util_ate.R")
 cat(paste(" - Running the script with marginally-valid algorithm and ground truth, alpha ", alpha, ", Gamma ",Gamma,
           ", n ", n, ", p ", p, ", seed ", seed, "\n"), sep = '')
 
+########################################
+## Output direcroty
+########################################
+if(!dir.exists("../results")){
+  dir.create("../results")
+}
+out_dir <- "../results/simulation/"
+if(!dir.exists(out_dir)){
+  dir.create(out_dir)
+}
+
+########################################
+## Parameter
+########################################
 alpha0 = 0
 n_test = 500
 beta = matrix(c(-0.531,0.126,-0.312,0.018,rep(0,p-4)), nrow=p)
@@ -27,6 +51,9 @@ pp = mean(data.gen.ate(n*1000,p,Gamma,beta,alpha0,obs=FALSE)$T)
 
 
 set.seed(seed)
+########################################
+## fit on the training fold
+########################################
 train.data = data.gen.ate(n,p,Gamma,beta,alpha0,obs=TRUE)
 train.X = (train.data$X[train.data$T==1,])[1:n,]
 train.Y = (train.data$Y1[train.data$T==1])[1:n]
@@ -34,7 +61,9 @@ train.Y = (train.data$Y1[train.data$T==1])[1:n]
 train.score = conform.score(train.X, train.Y, "cqr", trained_model=NULL, quantile=1-alpha)
 t.mdl = train.score$model
 
-# generate calibration fold
+########################################
+## calibration 
+########################################
 calib.data = data.gen.ate(n,p,Gamma,beta,alpha0,obs=TRUE)
 calib.X = (calib.data$X[calib.data$T==1,])[1:n,]
 calib.Y = (calib.data$Y1[calib.data$T==1])[1:n]
@@ -51,7 +80,9 @@ calib.all = data.frame("score"=calib.score, "lx"=calib.lx, "ux"=calib.ux, "wx"=c
 calib.all = calib.all[order(calib.all$score),]
 rownames(calib.all) = 1:dim(calib.all)[1]
 
-# generate test fold
+########################################
+## generate test fold
+########################################
 test.data = data.gen.ate(n_test,p,Gamma,beta,alpha0,obs=FALSE)
 test.X = test.data$X
 test.Y1 = test.data$Y1
@@ -60,9 +91,9 @@ test.lx = pp*(1+ 1/Gamma * (1-test.ex)/test.ex)
 test.ux = pp*(1+ Gamma* (1-test.ex)/(test.ex))
 test.pred = predict(t.mdl, test.X, quantile=c(alpha/2, 1-alpha/2)) 
 
-###################################
-# the confounding-aware algorithm #
-###################################
+########################################
+## the confounding-aware algorithm  
+########################################
 
 cat(" - Computing the robust weighted conformal inference...")
 
@@ -91,9 +122,9 @@ c.cover = (c.test.lo <= test.Y1) * (c.test.hi >= test.Y1)
 
 cat("Done.\n")
 
-#####################################
-# the confounding-unaware algorithm #
-#####################################
+########################################
+## the confounding-unaware algorithm  
+########################################
 
 cat(" - Computing the vanilla weighted conformal inference...")
 
@@ -118,10 +149,13 @@ nc.cover = (nc.test.lo <= test.Y1) * (nc.test.hi >= test.Y1)
 
 cat("Done.\n")
 
+########################################
+# output summary of test   
+########################################
 res = data.frame("c.cov" = mean(c.cover), "c.len" = mean(c.test.hi-c.test.lo),
                  "nc.cov" = mean(nc.cover), "nc.len" = mean(nc.test.hi-nc.test.lo), 
                  "n" = n, "p" = p, "n_calib" = n_calib,
                  "gamma" = Gamma, "alpha" = alpha, "seed" = seed, "method" = "marginal")
 
-save.path = paste("./results/pred_marginal_p_",p,"_n_",n,"_alpha_",alpha_ind,"_gamma_",Gamma_ind,"_seed_",seed,".csv",sep='')
+save.path = paste(out_dir, "pred_marginal_p_",p,"_n_",n,"_alpha_",alpha_ind,"_gamma_",Gamma_ind,"_seed_",seed,".csv",sep='')
 write.csv(res, save.path)

@@ -9,8 +9,8 @@ for p in  4 20
 		do 
 		for seed in {1..100} 
 			do
-  Rscript ../simulations/cf_prediction/mgn.R $p $n $alpha_id $gamma_id $seed
-  Rscript ../simulations/cf_prediction/mgn_est.R $p $n $alpha_id $gamma_id $seed
+  Rscript ../simulations/mgn.R $p $n $alpha_id $gamma_id $seed
+  Rscript ../simulations/mgn_est.R $p $n $alpha_id $gamma_id $seed
 done
 done
 done
