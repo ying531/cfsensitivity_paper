@@ -117,5 +117,5 @@ res = data.frame("c.cov" = mean(c.cover), "c.len" = mean(c.test.hi-c.test.lo),
                  "n_train" = length(train.ind), "n_calib"=n_calib,
                  "gamma" = Gamma, "alpha" = alpha, "seed" = seed, "method" = "PAC") 
 
-save.path = paste(out_dir, "syns_pred_pac_alpha_",alpha_ind,"_gamma_",Gamma_ind,"_seed_",seed,".csv",sep='')
+save.path = paste(out_dir, "syn_pred_pac_alpha_",alpha_ind,"_gamma_",Gamma_ind,"_seed_",seed,".csv",sep='')
 write.csv(res, save.path)

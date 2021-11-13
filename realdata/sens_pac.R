@@ -4,7 +4,8 @@
 ########################################
 args <- commandArgs(trailingOnly = TRUE)
 pos <- as.integer(args[1]) # whether test for positive ITE
-seed <- as.integer(args[2]) 
+alpha_id <- as.integer(args[2])
+seed <- as.integer(args[3]) 
 
 ########################################
 ## load libraries
@@ -32,7 +33,7 @@ if(!dir.exists(out_dir)){
 ########################################
 ## Parameter
 ########################################
-alpha = 0.1
+alpha = alpha_id / 10
 delta = 0.05
 set.seed(seed)
 
@@ -128,10 +129,10 @@ cat("Done.\n")
 ########################################
 if (pos == 1){
   all.test = cbind(test.data, hat.gamma)
-  write.csv(all.test, paste(out_dir, "sens_positive_pac_hgamma_seed_",seed,".csv",sep=''))
+  write.csv(all.test, paste(out_dir, "sens_positive_pac_alpha_",alpha_id,"_seed_",seed,".csv",sep=''))
 }else{
   org.data$Y = -org.data$Y
   all.test = cbind(test.data, hat.gamma)
-  write.csv(all.test, paste(out_dir, "sens_negative_pac_hgamma_seed_",seed,".csv",sep=''))
+  write.csv(all.test, paste(out_dir, "sens_negative_pac_alpha_",alpha_id,"_seed_",seed,".csv",sep=''))
 }
 
