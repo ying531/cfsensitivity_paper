@@ -24,7 +24,7 @@ Each file in `simulations/` folder implements one run of the simulation.
 
 Files starting with `pred_` are for counterfactual prediction in Section 6.1. Each of them take the inputs `--p` for the dimension, `--n` for the sample size, `--alpha_id` for the coverage target, `--gamma_id` for the confounding level and `--seed` for the random seed. 
 
-Simulations in the paper take dimension 4 and 20, sample size 500, 2000 and 5000, `alpha_id` from 1 to 9 corresponding to coverage from 0.9 to 0.1, `gamma_id` from 1 to 5 corresponding to confounding level 1.5, 2, 2.5, 3, 5, and seed from 1to 1000. The result of each run will be stored in (created) `results/` folder with file name indicating the algorithm employed and all these configurations.
+Simulations in the paper take dimension 4 and 20, sample size 500, 2000 and 5000, `alpha_id` from 1 to 9 corresponding to coverage from 0.9 to 0.1, `gamma_id` from 1 to 5 corresponding to confounding level 1.5, 2, 2.5, 3, 5, and seed from 1 to 1000. The result of each run will be stored in (created) `results/` folder with file name indicating the algorithm employed and all these configurations.
 
 For example, to execute a single run of counterfactual prediction using the marginally valid procedure with ground truth of bounds, covariate dimension 4, sample size 2000, coverage 0.9, confounding level 1.5 and random seed 5, one can run the following script:
 
@@ -80,7 +80,7 @@ It stores the summary of this single run similarly in `results/simulation/` fold
 
 ### Batch submission 
 
-The simulations can also be submitted in a batch mode on computing clusters, using bash files in `bash/` folder (might need modification according to the configurations of computing clusters). We implement all simulation configurations with seed from 1 to 100. 
+The simulations can also be submitted in a batch mode on computing clusters, using bash files in `bash/` folder (might need modification according to the configurations of computing clusters). We implement all simulation configurations with seed from 1 to 100 (experiments in the paper use 1 to 1000). 
 
 For example, to submit the jobs for counterfactual prediction with marginally valid procedure (both with ground truth and estimated bounds), direct to `bash/` folder and run 
 
@@ -150,7 +150,7 @@ It stores the covariate, treatment and responses of test data along with the obt
 
 ### Batch submission 
 
-Experiments on real data can be submitted in batch mode using bash files in `bash/` folder (might need modification according to the configurations of computing clusters). We implement all simulation configurations with seed from 1 to 100, which can be modified as well. 
+Experiments on real data can be submitted in batch mode using bash files in `bash/` folder (might need modification according to the configurations of computing clusters). We implement all simulation configurations with seed from 1 to 100, which can be modified as well (the paper uses 1 to 1000). 
 
 For example, to run all configurations using marginally valid procedure with random seed from 1 to 100, one can direct to `bash/` folder and run the following command:
 
