@@ -1,6 +1,6 @@
 # Paper Repository
 
-This repository contains the code to reproduce the numerical results in our paper - Sensitivity Analysis of Individual Treatment Effects: A Robust Conformal Inference Approach.
+This repository contains the code to reproduce the numerical results in our paper - [Sensitivity Analysis of Individual Treatment Effects: A Robust Conformal Inference Approach](https://arxiv.org/abs/2111.12161).
 
 The following R packages are required to be installed: [grf](https://grf-labs.github.io/grf/), [tidyverse](https://www.tidyverse.org/).
 
